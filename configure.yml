@@ -1,0 +1,100 @@
+---
+- hosts: db
+  tasks:
+    - name: Install mysql
+      become: yes
+      apt:
+        name: mysql-server
+        update_cache: yes
+
+    - name: Replace a bind-address
+      become: yes
+      replace:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '127.0.0.1'
+        replace: "0.0.0.0"
+    - name: Restart mysql service
+      become: yes
+      service:
+        name: mysql
+        state: restarted
+    - name: Create database user
+      become: yes 
+      mysql_user:
+        name: fbird
+        password: fbird
+        host: "%"
+        priv: 'fbird.*:ALL'
+        state: present
+    - name: Create a new database with name 'fbird'
+      become: yes
+      mysql_db:
+        name: fbird
+        state: present
+    - name: Import file.sql similar to mysql -u <username> -p <password> < hostname.sql
+      become: yes
+      mysql_db:
+        state: import
+        name: all
+        target: /home/vagrant/dump.sql
+
+- hosts: app
+  become: yes
+  tasks:
+    - name: install JDK 11
+      apt:
+        name: openjdk-11-jdk
+        state: present
+    - name: add tomcat group
+      group:
+        name: tomcat
+
+    - name: add tomcat user
+      user:
+        name: tomcat
+        group: tomcat
+        home: /user/share/tomcat
+        createhome: no
+
+    - name: create /opt/tomcat directory
+      file:
+        path: /opt/tomcat
+        state: directory
+        mode: 0755
+
+    - name: download & unarchive
+      unarchive:
+        src: http://apache.cp.if.ua/tomcat/tomcat-9/v9.0.29/bin/apache-tomcat-9.0.29.tar.gz
+        dest: /opt/tomcat
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+
+    - name: Change ownership
+      file:
+        path: /opt/tomcat
+        owner: tomcat
+        group: tomcat
+        mode: "u+rwx,g+rx,o=rx"
+        recurse: yes
+        state: directory
+
+    - name: Copy Tomcat service from local to remote
+      copy:
+         src: /home/vagrant/tomcat2.service
+         dest: /etc/systemd/system/tomcat.service
+         mode: 0755
+
+    - name: Start and enable Tomcat service
+      systemd:
+        name: tomcat
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: deploy app
+      copy:
+         src: /home/vagrant/fbird.war
+         dest: /opt/tomcat/webapps/fbird.war
+         mode: 0755
+
+
