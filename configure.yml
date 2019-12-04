@@ -68,6 +68,18 @@
         dest: /opt/tomcat
         remote_src: yes
         extra_opts: [--strip-components=1]
+    
+    - name: Copy Tomcat context.xml
+      copy:
+         src: /home/vagrant/context.xml
+         dest: /opt/tomcat/webapps/manager/META-INF/context.xml
+         mode: 0755
+
+    - name: Copy Tomcat tomcat-users
+      copy:
+         src: /home/vagrant/tomcat-users.xml
+         dest: /opt/tomcat/conf/tomcat-users.xml
+         mode: 0755
 
     - name: Change ownership
       file:
@@ -96,5 +108,48 @@
          src: /home/vagrant/fbird.war
          dest: /opt/tomcat/webapps/fbird.war
          mode: 0755
+
+- hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+    - name: install JDK 8
+      apt:
+        name: openjdk-8-jdk
+        state: present
+    - name: install maven
+      apt:
+        name: maven
+        state: present
+    - name: Add Jenkins apt repository key.
+      apt_key:
+        url: https://pkg.jenkins.io/debian/jenkins.io.key
+        state: present
+    - name: Add Jenkins apt repository.
+      apt_repository:
+        repo: 'deb http://pkg.jenkins.io/debian-stable binary/'
+        state: present
+        update_cache: true
+    - name: install jenkins
+      apt:
+        name: jenkins
+        state: present
+    - name: Start & Enable Jenkins
+      systemd:
+        name: jenkins
+        state: started
+        enabled: true
+
+    - name: Sleep for 30 seconds and continue with play
+      wait_for: timeout=30
+
+    - name: Get init password Jenkins
+      shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+      changed_when: "Initial password already set"
+      register: result
+
+    - name: Print init password Jenkins
+      debug:
+        var: result.stdout
 
 

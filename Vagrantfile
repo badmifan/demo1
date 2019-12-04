@@ -76,7 +76,10 @@ Vagrant.configure("2") do |config|
     jenkins.vm.provision "file", source: "configure.yml", destination: "configure.yml"
     jenkins.vm.provision "file", source: "tomcat2.service", destination: "tomcat2.service"
     jenkins.vm.provision "file", source: "fbird.war", destination: "fbird.war"
-    jenkins.vm.provision "file", source: "/home/mif/.vagrant.d/insecure_private_key", destination: "private_key"
+    jenkins.vm.provision "file", source: "tomcat-users.xml", destination: "tomcat-users.xml"
+    jenkins.vm.provision "file", source: "context.xml", destination: "context.xml"
+    #jenkins.vm.provision "file", source: "/home/mif/.vagrant.d/insecure_private_key", destination: "private_key"
+    jenkins.vm.provision "file", source: "/Users/mikhaild/.vagrant.d/insecure_private_key", destination: "private_key"
     #jenkins.vm.provision "shell", inline: $script_ubuntu
     jenkins.vm.provision :ansible_local do |ansible|
         ansible.playbook       = "/home/vagrant/configure.yml"
